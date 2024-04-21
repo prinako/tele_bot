@@ -48,7 +48,7 @@ async def bill_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['tettle']: str = text
     
     await update.message.reply_text(
-        f'You have selected {text}.\n What is the value of the bill? \n ex:100.00', 
+        f'You have selected {text}.\n What is the value of the bill? \n ex:100.00', disable_notification=True
     )    
     return DATE
 
@@ -57,7 +57,7 @@ async def bill_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
         value: int = int(update.message.text)
         context.user_data['value']: int = value
         await update.message.reply_text(
-            f'Expiry date of the bill?\n {context.user_data} \n ex: dd/mm 01/11', reply_markup=ReplyKeyboardRemove(), 
+            f'Expiry date of the bill?\n {context.user_data} \n ex: dd/mm 01/11', reply_markup=ReplyKeyboardRemove(), disable_notification=True
         )    
         return PIX
     except ValueError:
@@ -70,7 +70,7 @@ async def bill_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
             del user_data['date']
         await update.message.reply_text(
             
-            'Please enter a valid number', reply_markup=ReplyKeyboardRemove(), 
+            'Please enter a valid number', reply_markup=ReplyKeyboardRemove(), disable_notification=True
         )
         user_data.clear()
         return ConversationHandler.END
@@ -79,7 +79,7 @@ async def bill_pix(update: Update, context: ContextTypes.DEFAULT_TYPE):
     date = update.message.text
     context.user_data['date']: str = date
     await update.message.reply_text(
-        'What is your pix key?', reply_markup=ReplyKeyboardRemove(), 
+        'What is your pix key?', reply_markup=ReplyKeyboardRemove(), disable_notification=True
     )
     return DONE
 
@@ -89,10 +89,10 @@ async def bill_done(update: Update, context):
         tettle = context.user_data['tettle']
         value = context.user_data['value']
         divider = float(value / 3   )
-        
+
         date = context.user_data['date']
         pix = update.message.text
-        
+
         # await update.message.pin(chat_id, message_id)
         await update.message.reply_text(
             f"⚠️⚠️ ATTENTION {tettle.upper()} BILL ⚠️⚠️\n \n"
@@ -106,14 +106,16 @@ async def bill_done(update: Update, context):
             "Bill saved successfully!",  
         )#.pin(chat_id=update.message.chat_id, message_id=update.message.message_id)
         return ConversationHandler.END
-    
+
     except Exception as e:
-       
         await update.message.reply_text(
-            f'This function is available only in groups', reply_markup=ReplyKeyboardRemove(), 
+            'This function is available only in groups',
+            reply_markup=ReplyKeyboardRemove(),
+            disable_notification=True,
         )
         user_data.clear()
         return ConversationHandler.END
+    
 async def exit_conversation (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
