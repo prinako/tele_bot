@@ -24,7 +24,7 @@ TOKEN = os.environ.get("TOKEN")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 GEMINI= os.getenv("GEMINI")
 
-AI = gmini_ai(api_key=GEMINI)
+
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE ):
@@ -125,9 +125,12 @@ async def bill_done(update: Update, context):
 async def exit_conversation (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
+import markdown
+
 # handel responses
-def handel_response(message: str) -> str:
-    processed: str = message.lower()
+def handel_response(message: str):
+    # processed: str = message.lower()
+    # print(processed)
 
     # if 'hello' in processed:
     #     return 'Hey! How\'s it going?'
@@ -147,13 +150,15 @@ def handel_response(message: str) -> str:
     #     return f"Today is {toDay}, {now}"
 
     # return 'I do not understand'
-    return AI.send_message(message)
+    resp: str = AI.send_message(message)
+    
+    return resp
 
 async def handel_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_type: str = update.message.chat.type
     text: str = update.message.text
 
-    print(f"Message received: {text} ({message_type})")
+    # print(f"Message received: {text} ({message_type})")
     if (
         message_type == 'group'
         and BOT_USERNAME in text
@@ -162,19 +167,28 @@ async def handel_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         and BOT_USERNAME in text
     ):
         new_text: str = text.replace(BOT_USERNAME, '').strip()
-        respond: str = handel_response(new_text)
-    elif message_type == 'group':
-        pass
-    elif message_type == 'supergroup':
-        return
+        respond: str = handel_response(new_text) #.replace('*', '').strip()
+    
     else:
-        respond: str = handel_response(text)
+        respond: str = handel_response(text) #.replace('*', '').strip()
 
-    await update.message.reply_text(respond)
-
+    # await update.message.reply_text(respond, parse_mode='MARKDOWN')
+    try:
+        await update.message.reply_markdown_v2(respond)
+        
+    except Exception as e:
+        try:
+            await update.message.reply_markdown(respond)
+        except Exception as e:
+            try:
+                await update.message.reply_text(respond)
+            except Exception as e:
+                await error(update, context)
 
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"Update: {update} caused error: {context.error}")
+
+    await update.message.reply_text("Oops! Something went wrong.  \nPlease try again.")
 
 def main():
     print("Starting bot...")
@@ -204,10 +218,11 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT, handel_message))
     
     #Errors
-    app.add_error_handler(error)
-    
+    #app.add_error_handler(error)
+
     #Chack for update
     app.run_polling()
 
 if __name__ == '__main__':
+    AI = gmini_ai(api_key=GEMINI)
     main()
