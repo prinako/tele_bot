@@ -14,11 +14,17 @@ from telegram.ext import (
     ConversationHandler,
     )
 
+# custom imports
+from gemini import gmini_ai
+
 VALUE, DATE, DONE, PIX, EXIT = range(5)
 
 load_dotenv()
 TOKEN = os.environ.get("TOKEN")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
+GEMINI= os.getenv("GEMINI")
+
+AI = gmini_ai(api_key=GEMINI)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE ):
@@ -120,47 +126,50 @@ async def exit_conversation (update: Update, context: ContextTypes.DEFAULT_TYPE)
     return ConversationHandler.END
 
 # handel responses
-def handel_response(message: str)->str:
+def handel_response(message: str) -> str:
     processed: str = message.lower()
-    
-    if 'hello' in processed:
-        return 'Hey! How\'s it going?'
-    
-    if 'hi' in processed:
-        return 'Hey! How\'s it going?'
-    
-    if 'yoo' in processed:
-        return 'Yoo'
-    
-    if 'how are you' in processed:
-        return 'I am fine, what about you?'
-    
-    if 'date' in processed:
-        now = datetime.now().strftime("%d/%m/%y, %H:%M:%S")
-        toDay = datetime.today().strftime('%A')
-        return f"Today is {toDay}, {now}"
 
-    return 'I do not understand'
+    # if 'hello' in processed:
+    #     return 'Hey! How\'s it going?'
+
+    # if 'hi' in processed:
+    #     return 'Hey! How\'s it going?'
+
+    # if 'yoo' in processed:
+    #     return 'Yoo'
+
+    # if 'how are you' in processed:
+    #     return 'I am fine, what about you?'
+
+    # if 'date' in processed:
+    #     now = datetime.now().strftime("%d/%m/%y, %H:%M:%S")
+    #     toDay = datetime.now().strftime('%A')
+    #     return f"Today is {toDay}, {now}"
+
+    # return 'I do not understand'
+    return AI.send_message(message)
 
 async def handel_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_type: str = update.message.chat.type
     text: str = update.message.text
-    
+
     print(f"Message received: {text} ({message_type})")
-    
-    if message_type == 'supergroup':
-        if BOT_USERNAME in text:
-            new_text: str = text.replace(BOT_USERNAME, '').strip()
-            respond: str = handel_response(new_text)
-        else:
-            return
+    if (
+        message_type == 'group'
+        and BOT_USERNAME in text
+        or message_type != 'group'
+        and message_type == 'supergroup'
+        and BOT_USERNAME in text
+    ):
+        new_text: str = text.replace(BOT_USERNAME, '').strip()
+        respond: str = handel_response(new_text)
     elif message_type == 'group':
-        if BOT_USERNAME in text:
-            new_text: str = text.replace(BOT_USERNAME, '').strip()
-            respond: str = handel_response(new_text)
+        pass
+    elif message_type == 'supergroup':
+        return
     else:
         respond: str = handel_response(text)
-    
+
     await update.message.reply_text(respond)
 
 
