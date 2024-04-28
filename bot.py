@@ -162,20 +162,22 @@ async def handel_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if (
         message_type == 'group'
         and BOT_USERNAME in text
-        or message_type != 'group'
-        and message_type == 'supergroup'
+        or message_type == 'supergroup'
         and BOT_USERNAME in text
     ):
         new_text: str = text.replace(BOT_USERNAME, '').strip()
         respond: str = handel_response(new_text) #.replace('*', '').strip()
-    
+
+    elif message_type in {'group', 'supergroup'}:
+        return
+
     else:
         respond: str = handel_response(text) #.replace('*', '').strip()
 
     # await update.message.reply_text(respond, parse_mode='MARKDOWN')
     try:
         await update.message.reply_markdown_v2(respond)
-        
+
     except Exception as e:
         try:
             await update.message.reply_markdown(respond)
