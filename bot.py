@@ -127,78 +127,200 @@ async def exit_conversation (update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 import markdown
 
-# handel responses
-def handel_response(message: str):
-    # processed: str = message.lower()
-    # print(processed)
+def handel_response(message: str) -> str:
+    """
+    This function sends a message to an AI and returns the response.
 
-    # if 'hello' in processed:
-    #     return 'Hey! How\'s it going?'
+    Args:
+        message (str): The message to send to the AI.
 
-    # if 'hi' in processed:
-    #     return 'Hey! How\'s it going?'
+    Returns:
+        str: The response from the AI.
+    """
+    # Sends the message to the AI and gets the response
+    resp: str = AI.send_message(message)  # type: ignore
 
-    # if 'yoo' in processed:
-    #     return 'Yoo'
-
-    # if 'how are you' in processed:
-    #     return 'I am fine, what about you?'
-
-    # if 'date' in processed:
-    #     now = datetime.now().strftime("%d/%m/%y, %H:%M:%S")
-    #     toDay = datetime.now().strftime('%A')
-    #     return f"Today is {toDay}, {now}"
-
-    # return 'I do not understand'
-    resp: str = AI.send_message(message)
-    
+    # Returns the response from the AI
     return resp
 
 async def handel_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle incoming messages and send responses from the AI.
+
+    Args:
+        update (telegram.Update): The received update.
+        context (telegram.ext.ContextTypes.DEFAULT_TYPE): The context object.
+
+    Returns:
+        None
+    """
+
+    # Get the type of the chat and the text of the message
     message_type: str = update.message.chat.type
     text: str = update.message.text
 
-    # print(f"Message received: {text} ({message_type})")
+    # If the message is sent in a group or supergroup and mentions the bot,
+    # remove the mention and send the response
     if (
-        message_type == 'group'
-        and BOT_USERNAME in text
-        or message_type == 'supergroup'
-        and BOT_USERNAME in text
+        message_type == 'group' and BOT_USERNAME in text
+        or message_type == 'supergroup' and BOT_USERNAME in text
     ):
         new_text: str = text.replace(BOT_USERNAME, '').strip()
         respond: str = handel_response(new_text) #.replace('*', '').strip()
 
+    # If the message is sent in a group or supergroup, return without sending a response
     elif message_type in {'group', 'supergroup'}:
         return
 
+    # If the message is sent in a one-on-one chat, send the response
     else:
-        respond: str = handel_response(text) #.replace('*', '').strip()
+        # respond: str = handel_response(text) #.replace('*', '').strip()
+        respond: str = 'To chat with AI, use *AI* option in the *menu* 👇 \nOr Just type */ai* to use the chat AI 🤖'
 
-    # await update.message.reply_text(respond, parse_mode='MARKDOWN')
+    # Send the response using Markdown formatting
     try:
         await update.message.reply_markdown_v2(respond)
-
-    except Exception as e:
+    except Exception:
         try:
             await update.message.reply_markdown(respond)
+        except Exception:
+            try:
+                await update.message.reply_text(respond, parse_mode='MARKDOWN')
+            except Exception:
+                try:
+                    await update.message.reply_text(respond)
+                except Exception as e:
+                    await error(update, context, e)
+
+
+# variables to control the conversation handler for ai
+CAI, END_CHAT = range(2)
+
+async def start_conversation_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Start a conversation with the chat-based AI.
+    
+    Args:
+        update (telegram.Update): The received update.
+        context (telegram.ext.ContextTypes.DEFAULT_TYPE): The context object.
+        
+    Returns:
+        int: The state to transition to.
+    """
+    # Instantiate a new chat-based AI with the Gemini API key
+    new_chat_ai = gmini_ai(api_key=GEMINI)
+    
+    # Store the chat-based AI in user data
+    context.user_data['new_chat_ai'] = new_chat_ai
+    
+    # Send a message to the user asking what they need help with
+    await update.message.reply_text("What can I help you with?")
+    
+    # Return the state to transition to
+    return CAI
+
+async def chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle messages for chat-based AI.
+    
+    Args:
+        update (telegram.Update): The received update.
+        context (telegram.ext.ContextTypes.DEFAULT_TYPE): The context object.
+        
+    Returns:
+        int: The state to transition to.
+    """
+    # Retrieve the chat-based AI
+    new_chat_ai = context.user_data['new_chat_ai']
+
+    # Check if the user wants to end the conversation
+    if update.message.text == '/endchat':
+        # End the conversation and reply with the AI's response
+        resp = new_chat_ai.send_message(update.message.text)
+        await update.message.reply_text(resp)
+        # Remove the chat-based AI from user data
+        user_dat = context.user_data
+        if 'new_chat_ai' in user_dat:
+            del user_dat['new_chat_ai']
+        return END_CHAT
+    
+    # Generate a response from the chat-based AI
+    resp = new_chat_ai.send_message(update.message.text)
+    try:
+        # Send the response using Markdown v2
+        await update.message.reply_markdown_v2(resp)
+    except Exception as e:
+        try:
+            # Send the response using Markdown
+            await update.message.reply_markdown(resp)
         except Exception as e:
             try:
-                await update.message.reply_text(respond)
+                # Send the response using Markdown with parse mode
+                await update.message.reply_text(resp, parse_mode='MARKDOWN')
             except Exception as e:
-                await error(update, context)
+                try:
+                    # Send the response as plain text
+                    await update.message.reply_text(resp)
+                except Exception as e:
+                    # Handle any errors and reply with an error message
+                    await error(update, context, error=e)
+    
+    # Return the state to transition to
+    return CAI
+        
+async def end_chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    End the chat-based AI conversation and transition to END_CHAT state.
 
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    Args:
+        update (telegram.Update): The received update.
+        context (telegram.ext.ContextTypes.DEFAULT_TYPE): The context object.
+
+    Returns:
+        int: The state to transition to, which is END_CHAT.
+    """
+    
+    # End the chat-based AI conversation and transition to END_CHAT state.
+    return ConversationHandler.END
+
+
+
+async def error(update: Update, context: ContextTypes.DEFAULT_TYPE, error: Exception) -> None:
+    """
+    Handle errors that occur during message processing.
+
+    Args:
+        update (telegram.Update): The received update.
+        context (telegram.ext.ContextTypes.DEFAULT_TYPE): The context object.
+        error (Exception): The error that occurred.
+
+    This function prints the update and error, and sends a message to the user
+    indicating that something went wrong.
+    """
+    # Print the update and error
     print(f"Update: {update} caused error: {context.error}")
+    
+    # Send a message to the user indicating that something went wrong
+    await update.message.reply_text("Oops! Something went wrong. \nPlease try again.")
 
-    await update.message.reply_text("Oops! Something went wrong.  \nPlease try again.")
 
 def main():
+    """
+    Main function to start the bot.
+
+    This function builds the bot application and sets up the conversation handlers and command handlers.
+    It then runs the polling method to start the bot.
+    """
     print("Starting bot...")
     
+    # Build the bot application
     app = Application.builder().token(TOKEN).build()
     
+    # Set up the conversation handler for new bill
     conv_handler = ConversationHandler(
+        # Entry points for the conversation
         entry_points=[CommandHandler('newBill', set_remember)],
+        # States for the conversation
         states={
             VALUE: [MessageHandler(filters.Regex("^(?!.*\?).*"), bill_value)],
             DATE: [MessageHandler(filters.Regex("^(?!.*\?).*"), bill_date)],
@@ -206,23 +328,36 @@ def main():
             PIX: [MessageHandler(filters.Regex("^(?!.*\?).*"), bill_pix)],
             EXIT: [MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex("^cancel$")) , exit_conversation)],
         },
-        fallbacks=[MessageHandler(filters.TEXT, handel_message)],
+        # Fallback handler for unhandled messages
+        fallbacks=[MessageHandler(filters.TEXT, handel_message)]
     )
     
-    #Commands
-    app.add_handler(conv_handler)
+    # Set up the conversation handler for chat-based AI
+    ai_chat_handler = ConversationHandler(
+        # Entry points for the conversation
+        entry_points=[CommandHandler('ai', start_conversation_ai)], 
+        # States for the conversation
+        states={
+            CAI: [MessageHandler(filters.TEXT, chat_ai)],
+            END_CHAT: [MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex("^endchat$")), end_chat_ai)]
+        },
+        # Fallback handler for unhandled messages
+        fallbacks=[MessageHandler(filters.TEXT, error)]
+    )
+    
+    # Add command handlers
     app.add_handler(CommandHandler('start', start_command))
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CommandHandler('custom', custom_command))
-    # app.add_handler(CommandHandler('remember', set_remember))
     
-    #Messages
+    # Add conversation handlers
+    app.add_handler(conv_handler)
+    app.add_handler(ai_chat_handler)
+    
+    # Add message handler
     app.add_handler(MessageHandler(filters.TEXT, handel_message))
     
-    #Errors
-    #app.add_error_handler(error)
-
-    #Chack for update
+    # Start the bot
     app.run_polling()
 
 if __name__ == '__main__':
