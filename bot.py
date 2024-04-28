@@ -166,7 +166,7 @@ async def handel_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         or message_type == 'supergroup' and BOT_USERNAME in text
     ):
         new_text: str = text.replace(BOT_USERNAME, '').strip()
-        respond: str = handel_response(new_text) #.replace('*', '').strip()
+        respond: str = handel_response(new_text).replace('##', '').strip()
 
     # If the message is sent in a group or supergroup, return without sending a response
     elif message_type in {'group', 'supergroup'}:
@@ -242,10 +242,10 @@ async def chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_dat = context.user_data
         if 'new_chat_ai' in user_dat:
             del user_dat['new_chat_ai']
-        return END_CHAT
+        return ConversationHandler.END
     
     # Generate a response from the chat-based AI
-    resp = new_chat_ai.send_message(update.message.text)
+    resp = (new_chat_ai.send_message(update.message.text)).replace('##', '').strip()
     try:
         # Send the response using Markdown v2
         await update.message.reply_markdown_v2(resp)
@@ -267,25 +267,26 @@ async def chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Return the state to transition to
     return CAI
-        
-async def end_chat_ai(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+
+async def error(update: Update, context: ContextTypes.DEFAULT_TYPE, error: Exception) -> None:
     """
-    End the chat-based AI conversation and transition to END_CHAT state.
+    Handle errors that occur during message processing.
 
     Args:
         update (telegram.Update): The received update.
         context (telegram.ext.ContextTypes.DEFAULT_TYPE): The context object.
+        error (Exception): The error that occurred.
 
-    Returns:
-        int: The state to transition to, which is END_CHAT.
+    This function prints the update and error, and sends a message to the user
+    indicating that something went wrong.
     """
+    # Print the update and error
+    print(f"Update: {update} caused error: {error}")
     
-    # End the chat-based AI conversation and transition to END_CHAT state.
-    return ConversationHandler.END
+    # Send a message to the user indicating that something went wrong
+    await update.message.reply_text("Oops! Something went wrong. \nPlease try again.")
 
-
-
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE, error: Exception) -> None:
+async def error_internal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Handle errors that occur during message processing.
 
@@ -339,7 +340,6 @@ def main():
         # States for the conversation
         states={
             CAI: [MessageHandler(filters.TEXT, chat_ai)],
-            END_CHAT: [MessageHandler(filters.TEXT & ~(filters.COMMAND | filters.Regex("^endchat$")), end_chat_ai)]
         },
         # Fallback handler for unhandled messages
         fallbacks=[MessageHandler(filters.TEXT, error)]
@@ -356,9 +356,10 @@ def main():
     
     # Add message handler
     app.add_handler(MessageHandler(filters.TEXT, handel_message))
+    app.add_error_handler(error_internal)
     
     # Start the bot
-    app.run_polling()
+    app.run_polling(poll_interval=5)
 
 if __name__ == '__main__':
     AI = gmini_ai(api_key=GEMINI)
