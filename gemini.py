@@ -14,7 +14,8 @@ class gmini_ai:
         self.generation_config = {
         "temperature": 1,
         "top_p": 0.95,
-        "top_k": 0,
+        # "top_k": 0,
+        "top_k": 64,
         "max_output_tokens": 8192,
         }
 
@@ -37,7 +38,10 @@ class gmini_ai:
         },
         ]
 
-        self.model = self.genai.GenerativeModel(model_name="gemini-1.5-pro-latest",
+        # self.model = self.genai.GenerativeModel(model_name="gemini-1.5-pro-latest",
+        #                             generation_config=self.generation_config,
+        #                             safety_settings=self.safety_settings)
+        self.model = self.genai.GenerativeModel(model_name="gemini-1.5-flash-latest",
                                     generation_config=self.generation_config,
                                     safety_settings=self.safety_settings)
 
