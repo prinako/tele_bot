@@ -38,12 +38,12 @@ class gmini_ai:
         },
         ]
 
-        # self.model = self.genai.GenerativeModel(model_name="gemini-1.5-pro-latest",
-        #                             generation_config=self.generation_config,
-        #                             safety_settings=self.safety_settings)
-        self.model = self.genai.GenerativeModel(model_name="gemini-1.5-flash-latest",
+        self.model = self.genai.GenerativeModel(model_name="gemini-1.5-pro-latest",
                                     generation_config=self.generation_config,
                                     safety_settings=self.safety_settings)
+        # self.model = self.genai.GenerativeModel(model_name="gemini-1.5-flash-latest",
+        #                             generation_config=self.generation_config,
+        #                             safety_settings=self.safety_settings)
 
         self.convo = self.model.start_chat(history=[
         ])
