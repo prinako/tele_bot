@@ -6,13 +6,14 @@ $ pip install google-generativeai
 import os
 import google.generativeai as genai
 
+
 AI_MODEL = os.getenv("AI_MODEL")
 
 class gmini_ai:
     def __init__(self, api_key: str):
         self.genai = genai
         self.api_key = api_key
-        self.genai.configure(api_key=self.api_key)
+        self.genai.configure(api_key=os.environ[self.api_key])
     # Set up the model
         self.generation_config = {
         "temperature": 1,
@@ -20,6 +21,7 @@ class gmini_ai:
         # "top_k": 0,
         "top_k": 64,
         "max_output_tokens": 8192,
+        "response_mime_type": "text/plain",
         }
 
         self.safety_settings = [
@@ -48,14 +50,15 @@ class gmini_ai:
         #                             generation_config=self.generation_config,
         #                             safety_settings=self.safety_settings)
 
-        self.convo = self.model.start_chat(history=[
+        self.chat_session = self.model.start_chat(history=[
         ])
     
     def send_message(self, msg: str) -> str:
         """Send a message and return the response in one line."""
-        self.convo.send_message(msg)
+        response = self.chat_session.send_message(msg)
         # print(self.convo)
-        return self.convo.last.text
+        # return self.convo.last.text
+        return response.text
 
 # input = input("Input: ")
 # import os
