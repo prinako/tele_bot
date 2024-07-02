@@ -3,7 +3,10 @@ At the command line, only need to run once to install the package via pip:
 
 $ pip install google-generativeai
 """
+import os
 import google.generativeai as genai
+
+AI_MODEL = OS.getenv("AI_MODEL")
 
 class gmini_ai:
     def __init__(self, api_key: str):
@@ -38,7 +41,7 @@ class gmini_ai:
         },
         ]
 
-        self.model = self.genai.GenerativeModel(model_name="gemini-1.5-pro-latest",
+        self.model = self.genai.GenerativeModel(model_name=AI_MODEL,
                                     generation_config=self.generation_config,
                                     safety_settings=self.safety_settings)
         # self.model = self.genai.GenerativeModel(model_name="gemini-1.5-flash-latest",

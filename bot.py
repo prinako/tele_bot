@@ -24,9 +24,6 @@ TOKEN = os.environ.get("TOKEN")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 GEMINI= os.getenv("GEMINI")
 
-
-
-
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE ):
     await update.message.reply_text("I'm a bot, please talk to me!")    
     
