@@ -6,7 +6,7 @@ $ pip install google-generativeai
 import os
 import google.generativeai as genai
 
-AI_MODEL = OS.getenv("AI_MODEL")
+AI_MODEL = os.getenv("AI_MODEL")
 
 class gmini_ai:
     def __init__(self, api_key: str):
