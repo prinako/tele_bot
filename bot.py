@@ -24,6 +24,9 @@ TOKEN = os.environ.get("TOKEN")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 GEMINI= os.getenv("GEMINI")
 
+AI_MODEL = os.getenv("AI_MODEL")
+print(AI_MODEL)
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE ):
     await update.message.reply_text("I'm a bot, please talk to me!")    
     
@@ -205,7 +208,7 @@ async def start_conversation_ai(update: Update, context: ContextTypes.DEFAULT_TY
         int: The state to transition to.
     """
     # Instantiate a new chat-based AI with the Gemini API key
-    new_chat_ai = gmini_ai(api_key=GEMINI)
+    new_chat_ai = gmini_ai(api_key=GEMINI, ai_model=AI_MODEL)
     
     # Store the chat-based AI in user data
     context.user_data['new_chat_ai'] = new_chat_ai
@@ -309,7 +312,7 @@ def main():
     This function builds the bot application and sets up the conversation handlers and command handlers.
     It then runs the polling method to start the bot.
     """
-    print("Starting bot...")
+    print("Bot started...")
     
     # Build the bot application
     app = Application.builder().token(TOKEN).build()
@@ -358,6 +361,8 @@ def main():
     # Start the bot
     app.run_polling(poll_interval=5)
 
+
 if __name__ == '__main__':
-    AI = gmini_ai(api_key=GEMINI)
+    print("Starting bot...")
+    AI = gmini_ai(api_key=GEMINI, ai_model=AI_MODEL)
     main()
